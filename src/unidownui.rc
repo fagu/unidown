@@ -1,0 +1,11 @@
+<!DOCTYPE kpartgui SYSTEM "kpartgui.dtd">
+<kpartgui name="unidown"  version="1">
+<MenuBar>
+  <!--<Menu name="move"><text>&amp;Move</text>
+    <Action name="switch_action" />
+</Menu>-->
+<!--<Menu name="file"><text>&amp;File</text>
+<Action name="file_print"/>
+</Menu>-->
+</MenuBar>
+</kpartgui>
