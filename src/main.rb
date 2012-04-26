@@ -7,14 +7,11 @@ Dir.chdir $unikernel.unidir do
 	$unikernel.init
 	$unikernel.findjobs
 	$unikernel.runjobs
-	puts $unikernel.jobs.size
+	
+# 	Job.jobs.each do |job|
+# 		puts job.outfile
+# 	end
 end
-
-# SaveJob.savedfiles.each do |f,|
-# 	puts f
-# end
-
-# exit
 
 description = "Unidown"
 version = "1"

@@ -3,7 +3,7 @@
 require 'dbus'
 
 module UniJobsUtil
-	def rc(*args)
+	def UniJobsUtil.rc(*args)
 		puts("cmd: "+args.join(" "))
 		return Kernel.system(*args)#,:out=>$stdout,:err=>$stderr)
 	end
@@ -28,16 +28,49 @@ module Asker
 	end
 end
 
+class Choice
+	attr_accessor :name, :func
+	def initialize(name,func)
+		@name = name
+		@func = func
+	end
+	def run
+		func.call
+	end
+end
+
+class Notification
+	def initialize
+		@choices = []
+	end
+	def choice(name, &func)
+		@choices.push Choice.new(name,func)
+	end
+end
+
 class Job
+	@@jobs = []
+	@@jobsbytype = {}
+	def self.jobs
+		@@jobs
+	end
+	def self.jobsbytype
+		@@jobsbytype
+	end
 	attr_accessor :children
 	attr_accessor :outfile
 	attr_accessor :success
-	@devel = false
-	class << self; attr_accessor :devel; end
 	def initialize
 		@children = []
 		@caller = Kernel.caller
 		@success = false
+		@@jobs.push self
+# 		puts self
+		@@jobsbytype[self.class] ||= []
+		@@jobsbytype[self.class].push self
+	end
+	def caller
+		@caller
 	end
 	def run
 		return if @success
@@ -96,19 +129,21 @@ class Job
 		$unikernel.foundfile[@outfile] = true
 	end
 	def genout
-		@outfile = nil
-		ggenout
-		if self.class.devel
-			@outfile = Digest::MD5.hexdigest("devel\n#{self.class.devel}\n"+@outfile)
-		end
+		bla = ggenout
+		bla = "#{self.class}\n"+@children.map{|c|c.outfile}.join("\n")+"\n#{bla}"
+		@outfile = Digest::MD5.hexdigest(bla)
 	end
 	def initchildren
 	end
 	def >>(x)
 		if x.kind_of?(Job)
 			x.children.push self
+			if x.kind_of?(PrintJob)
+				return self
+			end
 		else
 			x.job = self
+			return self
 		end
 		return x
 	end
@@ -127,7 +162,7 @@ class InJob < Job
 		@i2 = params[2].to_i
 	end
 	def ggenout
-		@outfile = Digest::MD5.hexdigest("in\n"+Digest::MD5.file("../.downloads/"+@infile).hexdigest)
+		return Digest::MD5.file("../.downloads/"+@infile).hexdigest
 	end
 	def rrun
 		puts "  In #{@infile}"
@@ -156,32 +191,33 @@ end
 class SaveJob < Job
 	@@savedfiles = {}
 # 	@devel = rand(1000000)
-	attr_accessor :realoutfile
+	attr_accessor :realoutfile, :printjobs, :chapterprops
 	def initialize(outfile, notify=true)
 		super()
-		@realoutfile = "../"+outfile
+		@realoutfile = outfile
 		@notify = notify
+		@printjobs = []
+		@chapterprops = []
 	end
 	def ggenout
-		if @@savedfiles[@realoutfile[3..-1]] == true
-			puts "Doppelbelegung von #{@realoutfile[3..-1]}"
+		if @@savedfiles[@realoutfile] == true
+			puts "Doppelbelegung von #{@realoutfile}"
 		end
-		@@savedfiles[@realoutfile[3..-1]] = true
-		@outfile = Digest::MD5.hexdigest("save2\n"+@children[0].outfile)
-		if !File.exist?(@realoutfile) && File.exist?(@outfile)
+		@@savedfiles[@realoutfile] = true
+		if !File.exist?("../"+@realoutfile) && File.exist?(@outfile)
 			FileUtils.rm(@outfile)
 		end
 	end
 	def rrun
-		exbef = File.exist?(@realoutfile)
-		FileUtils.mkdir File.dirname(@realoutfile) if !File.directory? File.dirname(@realoutfile)
-		FileUtils.cp(@children[0].outfile,@realoutfile)
+		exbef = File.exist?("../"+@realoutfile)
+		FileUtils.mkdir File.dirname("../"+@realoutfile) if !File.directory? File.dirname("../"+@realoutfile)
+		FileUtils.cp(@children[0].outfile,"../"+@realoutfile)
 		FileUtils.ln(@children[0].outfile,@outfile)
 		puts "#{(exbef ? "~" : "+")} #{@realoutfile}"
 		if @notify && !$unikernel.quiet
 			ans = Asker.ask("#{(exbef ? "Geändert" : "Neu")}: #{@realoutfile}\nÖffnen?", ["Ja","Nein"])
 			if ans == 1
-				system("xdg-open '#{@realoutfile}' > /dev/null 2> /dev/null &")
+				system("xdg-open '#{"../"+@realoutfile}' > /dev/null 2> /dev/null &")
 			end
 		end
 	end
@@ -215,6 +251,8 @@ class PDFBookProp
 		return x
 	end
 	def ggenouthelper
+		puts "hi "+@job.class.to_s
+		@job.chapterprops.push self if @job.kind_of?(SaveJob)
 		erg = ""
 		erg += @name if @name
 		erg += "\n"
@@ -268,11 +306,11 @@ class PDFBookJob < Job
 		end
 	end
 	def ggenout
-		erg = "book\n"
+		erg = ""
 		@props.each do |pr|
 			erg += pr.ggenouthelper
 		end
-		@outfile = Digest::MD5.hexdigest(erg)
+		return erg
 	end
 	def rrun
 # 		namen = []
@@ -282,8 +320,8 @@ class PDFBookJob < Job
 # 			namen.push na
 # 		end
 		names = pdfs.map {|x| x.outfile }
-		if !UniJobsUtil.rc("pdftk", *names, "cat", "output", "../.tmp/book.pdf")
-# 		if !UniJobsUtil.rc("pdfjam", "--outfile", "../.tmp/book.pdf", *namen)
+		if !UniJobsUtil::rc("pdftk", *names, "cat", "output", "../.tmp/book.pdf")
+# 		if !UniJobsUtil::rc("pdfjam", "--outfile", "../.tmp/book.pdf", *namen)
 			@success = false
 		end
 		File.open("../.tmp/bookmarks.txt", "w") do |f|
@@ -292,7 +330,7 @@ class PDFBookJob < Job
 				page = pr.write(f, page, 0)
 			end
 		end
-		if !UniJobsUtil.rc("jpdfbookmarks_cli", "../.tmp/book.pdf", "-a", "../.tmp/bookmarks.txt", "-o", @outfile, "-f")
+		if !UniJobsUtil::rc("jpdfbookmarks_cli", "../.tmp/book.pdf", "-a", "../.tmp/bookmarks.txt", "-o", @outfile, "-f")
 			@success = false
 		end
 	end
@@ -328,7 +366,7 @@ class PDFTitleJob < Job
 		@title = title
 	end
 	def ggenout
-		@outfile = Digest::MD5.hexdigest("title\n"+@children[0].outfile+"\n"+@title)
+		return @title
 	end
 	def rrun
 		File.open("../.tmp/info.txt", "w") do |f|
@@ -338,11 +376,11 @@ class PDFTitleJob < Job
 		repaired = false
 		FileUtils.cp(@children[0].outfile, "../.tmp/tmp.pdf")
 		while true
-			if UniJobsUtil.rc("pdftk", "../.tmp/tmp.pdf", "update_info_utf8", "../.tmp/info.txt", "output", @outfile, "dont_ask")
+			if UniJobsUtil::rc("pdftk", "../.tmp/tmp.pdf", "update_info_utf8", "../.tmp/info.txt", "output", @outfile, "dont_ask")
 				@success = true
 				return
 			else
-				if repaired || !UniJobsUtil.rc("pdftk", @children[0].outfile, "cat", "output", "../.tmp/tmp.pdf")
+				if repaired || !UniJobsUtil::rc("pdftk", @children[0].outfile, "cat", "output", "../.tmp/tmp.pdf")
 					@success = false
 					return
 				end
@@ -363,14 +401,14 @@ class PDFShrinkJob < Job
 		super()
 	end
 	def ggenout
-		@outfile = Digest::MD5.hexdigest("shrink\n"+@children[0].outfile+"\n")
+		return ""
 	end
 	def rrun
 		FileUtils.cp(@children[0].outfile, "../.tmp/tmp.pdf")
-		if !UniJobsUtil.rc("pdfjam", "--nup", "2x4", "--outfile", "../.tmp/tmp2.pdf", "--no-landscape", "--frame", "true", "--delta", "0.5mm 0.5mm", "../.tmp/tmp.pdf")
+		if !UniJobsUtil::rc("pdfjam", "--nup", "2x4", "--outfile", "../.tmp/tmp2.pdf", "--no-landscape", "--frame", "true", "--delta", "0.5mm 0.5mm", "../.tmp/tmp.pdf")
 			@success = false
 		end
-		if !UniJobsUtil.rc("pdfjam", "--trim", "-1.5cm -1.5cm -1.5cm -1.5cm", "--outfile", @outfile, "../.tmp/tmp2.pdf")
+		if !UniJobsUtil::rc("pdfjam", "--trim", "-1.5cm -1.5cm -1.5cm -1.5cm", "--outfile", @outfile, "../.tmp/tmp2.pdf")
 			@success = false
 		end
 	end
@@ -382,16 +420,17 @@ class PrintJob < Job
 		@printid = printid
 	end
 	def ggenout
-		if !@printid && @children[0].kind_of?(SaveJob)
-			@printid = @children[0].realoutfile
+		if @children[0].kind_of?(SaveJob)
+			@printid ||= @children[0].realoutfile
+			@children[0].printjobs.push self
 		end
-		@outfile = Digest::MD5.hexdigest("print\n"+@printid)
+		return @printid
 	end
 	def rrun
 		if !$unikernel.quiet
 			ans = Asker.ask("#{@children[0].realoutfile if @children[0].kind_of?(SaveJob)} drucken?", ["Ja","Nein","Später"])
 			if ans == 1
-				if !UniJobsUtil.rc("lpr", "-o", "sides=two-sided-long-edge", @children[0].outfile)
+				if !UniJobsUtil::rc("lpr", "-o", "sides=two-sided-long-edge", @children[0].outfile)
 					@success = false
 				end
 				FileUtils.touch @outfile
@@ -413,10 +452,10 @@ class RepairGhostscriptJob < Job
 		super()
 	end
 	def ggenout
-		@outfile = Digest::MD5.hexdigest("repair-ghostscript\n"+@children[0].outfile+"\n")
+		return ""
 	end
 	def rrun
-		if !UniJobsUtil.rc("gs", "-sDEVICE=pdfwrite", "-sOutputFile=#{@outfile}", "-dNOPAUSE", "-dBATCH", @children[0].outfile)
+		if !UniJobsUtil::rc("gs", "-sDEVICE=pdfwrite", "-sOutputFile=#{@outfile}", "-dNOPAUSE", "-dBATCH", @children[0].outfile)
 			@success = false
 		end
 	end
@@ -427,12 +466,12 @@ class CompileTeXJob < Job
 		super()
 	end
 	def ggenout
-		@outfile = Digest::MD5.hexdigest("compiletex\n#{@children[0].outfile}")
+		return ""
 	end
 	def rrun
 		FileUtils.cp(@children[0].outfile, "../.tmp/tmp.tex")
 		Dir.chdir("../.tmp/") do
-			if !UniJobsUtil.rc("latexmk", "-pdf", "tmp.tex")
+			if !UniJobsUtil::rc("latexmk", "-pdf", "tmp.tex")
 				@success = false
 			end
 		end
@@ -448,12 +487,12 @@ class RemovePasswordJob < Job
 		@password = pass
 	end
 	def ggenout
-		@outfile = Digest::MD5.hexdigest("rmpass\n#{@children[0].outfile}\n#{@password}")
+		return @password
 	end
 	def rrun
 		FileUtils.cp(@children[0].outfile, "../.tmp/tmp.pdf")
 		Dir.chdir("../.tmp/") do
-			if !UniJobsUtil.rc("pdftops", "-upw", @password, "tmp.pdf") || !UniJobsUtil.rc("ps2pdf", "tmp.ps")
+			if !UniJobsUtil::rc("pdftops", "-upw", @password, "tmp.pdf") || !UniJobsUtil::rc("ps2pdf", "tmp.ps")
 				@success = false
 			end
 		end
@@ -474,14 +513,14 @@ class SourceToPDFJob < Job
 		super()
 	end
 	def ggenout
-		@outfile = Digest::MD5.hexdigest("souUniJobsUtil.rce2pdf\n#{@ext}\n#{@children[0].outfile}")
+		return @ext
 	end
 	def rrun
 		FileUtils.cp(@children[0].outfile, "../.tmp/tmp.#{@ext}")
 		Dir.chdir("../.tmp/") do
-			if !UniJobsUtil.rc("a2ps", "-B", "-E", "-R", "--columns=1", "-o", "../.tmp/tmp2.ps", "../.tmp/tmp.#{@ext}")
+			if !UniJobsUtil::rc("a2ps", "-B", "-E", "-R", "--columns=1", "-o", "../.tmp/tmp2.ps", "../.tmp/tmp.#{@ext}")
 				@success = false
-			elsif !UniJobsUtil.rc("ps2pdf", "-sPAPERSIZE=a4", "../.tmp/tmp2.ps", "../.tmp/tmp2.pdf")
+			elsif !UniJobsUtil::rc("ps2pdf", "-sPAPERSIZE=a4", "../.tmp/tmp2.ps", "../.tmp/tmp2.pdf")
 				@success = false
 			end
 		end

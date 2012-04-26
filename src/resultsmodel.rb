@@ -6,6 +6,7 @@ class String
 end
 
 class ResultsItem
+	attr_accessor :job
 	def initialize(name,path,parent,row)
 		@name = name
 		@path = path
@@ -95,12 +96,13 @@ class ResultsModel < Qt::AbstractItemModel
 	def initialize(parent=nil)
 		super(parent)
 		@root = ResultsItem.new("",$unikernel.unidir,nil,0)
-		SaveJob.savedfiles.each do |f,|
-			li = f.split("/")
+		Job.jobsbytype[SaveJob].each do |f|
+			li = f.realoutfile.split("/")
 			it = @root
 			li.each do |l|
 				it = it.childByName(l)
 			end
+			it.job = f
 		end
 		@root.sort
 	end
@@ -126,7 +128,7 @@ class ResultsModel < Qt::AbstractItemModel
 		return pait.childCount
 	end
 	def columnCount(parent)
-		return rowCount(parent) ? 2 : 0
+		return rowCount(parent) ? 3 : 0
 	end
 	def data(index, role)
 		if !index.isValid
@@ -135,14 +137,18 @@ class ResultsModel < Qt::AbstractItemModel
 			ip = index.internalPointer
 			if    role == Qt::DisplayRole && index.column == 0
 				return Qt::Variant.new(ip.name)
-			elsif role == Qt::DisplayRole && index.column == 1
-				return Qt::Variant.new(ip.childCount)
+# 			elsif role == Qt::DisplayRole && index.column == 1
+# 				return Qt::Variant.new(ip.childCount)
 # 			elsif role == Qt::ToolTipRole
 # 				return Qt::Variant.new("bla")
 # 			elsif role == Qt::CheckStateRole
 # 				return Qt::Variant.fromValue(Qt::PartiallyChecked)
 			elsif role == Qt::DecorationRole && index.column == 0
 				return Qt::Variant.fromValue(ip.icon)
+			elsif role == Qt::DecorationRole && index.column == 1 && ip.job && !ip.job.printjobs.empty?
+				return Qt::Variant.fromValue(Qt::Icon.fromTheme("document-print"))
+			elsif role == Qt::DecorationRole && index.column == 2 && ip.job && !ip.job.chapterprops.empty?
+				return Qt::Variant.fromValue(Qt::Icon.fromTheme("x-office-address-book"))
 			else
 				return Qt::Variant.new
 			end
@@ -150,7 +156,7 @@ class ResultsModel < Qt::AbstractItemModel
 	end
 	def headerData(section, orientation, role)
 		if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
-			return Qt::Variant.new(["Text", "Anzahl direkter Kinder"][section])
+			return Qt::Variant.new(["Datei", "D", "B"][section])
 		else
 			return Qt::Variant.new
 		end

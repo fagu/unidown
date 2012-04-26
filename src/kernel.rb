@@ -125,7 +125,6 @@ class InternetLocation
 				@matchers.each do |mat|
 					if mat.exp =~ fi
 						ij = InJob.new(fi, $~)
-						$unikernel.jobs.push ij
 						mat.matched.push ij
 						mat.ma[$~.captures] = ij
 						gef = true
@@ -144,7 +143,6 @@ class InternetLocation
 			mat.doers.each do |d|
 				mat.matched.each do |x|
 					res = MatchedContext.new(x).instance_eval(&d)
-					$unikernel.jobs.push res if res.kind_of?(Job)
 				end
 			end
 		end
@@ -162,9 +160,6 @@ end
 class ConfigAEnv
 	def loc(*args,&block)
 		InternetLocation.new(*args,&block)
-	end
-	def addjob(j)
-		$unikernel.jobs.push j
 	end
 end
 class ConfigBEnv < ConfigAEnv
@@ -196,14 +191,13 @@ end
 require 'nokogiri'
 
 class UnidownKernel
-	attr_accessor :dodownload, :quiet, :remake, :unidir, :configA, :configB, :locations, :jobs, :bookchapters, :books, :foundfile
+	attr_accessor :dodownload, :quiet, :remake, :unidir, :configA, :configB, :locations, :bookchapters, :books, :foundfile
 	def initialize
 		@dodownload = true
-		@quiet = false
+		@quiet = true
 		@remake = false
 		@unidir = '/home/fabian/programmieren/skripte/unidowntest'
 		@locations = []
-		@jobs = []
 		@bookchapters = {}
 		@books = {}
 		@foundfile = {}
@@ -215,6 +209,11 @@ class UnidownKernel
 				@oldsavedfiles.push fi.strip
 			end
 		end
+		$stdout = File.open('unidown.log', 'a')
+		$stderr = $stdout
+
+		time = Time.now.to_s
+		puts "### " + time + " " + "#"*(100-time.size)
 		ConfigEnv.new.instance_eval(IO.read("config.rb"))
 		ConfigAEnv.new.instance_eval(&@configA)
 	end
@@ -293,7 +292,7 @@ class UnidownKernel
 				@foundfile[fi] = false if fi != '.' && fi != '..'
 			end
 
-			jobs.each do |job|
+			Job.jobs.each do |job|
 				job.run
 			end
 
