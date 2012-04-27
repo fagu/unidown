@@ -382,7 +382,6 @@ class PDFBookJob < Job
 		names = []
 		@children.each do |c|
 			na = "../.tmp/tmp#{names.size}.pdf"
-			puts Dir.pwd
 			FileUtils.cp(c.outfile, na)
 			names.push na
 		end
