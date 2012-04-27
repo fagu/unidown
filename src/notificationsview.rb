@@ -3,17 +3,21 @@ require 'notificationsmodel.rb'
 
 class NotificationsView < Qt::Widget
 	slots 'notificationActivated(const QModelIndex&, const QModelIndex&)'
+	slots 'notificationDoubleClicked(const QModelIndex&)'
 	
 	def initialize(parent = nil)
 		super(parent)
 		@ui = Ui_Notificationsview_base.new
 		@ui.setupUi(self)
-		notificationActivated(Qt::ModelIndex.new)
 		
 		@model = NotificationsModel.new
 		@model.rowCount(Qt::ModelIndex.new)
 		@ui.list.setModel @model
 		connect(@ui.list.selectionModel, SIGNAL('currentChanged(const QModelIndex&, const QModelIndex&)'), self, SLOT('notificationActivated(const QModelIndex&, const QModelIndex&)'))
+		connect(@ui.list, SIGNAL('doubleClicked(const QModelIndex&)'), self, SLOT('notificationDoubleClicked(const QModelIndex&)'))
+		@ui.list.selectionModel.setCurrentIndex(@model.index(0), Qt::ItemSelectionModel::ClearAndSelect)
+		@ui.list.setFocus(Qt::PopupFocusReason)
+		@ui.list.grabKeyboard
 	end
 	
 	def notificationActivated(index, spam=nil)
@@ -46,5 +50,10 @@ class NotificationsView < Qt::Widget
 				lay.addWidget b
 			end
 		end
+	end
+	
+	def notificationDoubleClicked(index)
+		it = @model.item(index)
+		it.choices[0].run
 	end
 end
