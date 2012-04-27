@@ -95,9 +95,8 @@ class Job
 	end
 	def callerline
 		@caller.each do |c|
-			puts c
 			if c =~ /\A\(eval\):(\d+):in `block (\(\d+ levels\) |)in init'/
-				return $1
+				return $1.to_i
 			end
 		end
 		return nil

@@ -6,6 +6,7 @@ require 'digest/md5'
 require 'optparse'
 require 'ostruct'
 require 'unijobss.rb'
+require 'myfiledialog.rb'
 
 module JobIniter
 end
@@ -33,7 +34,9 @@ class MatchedContext
 end
 
 class InternetLocation
+	attr_accessor :url, :destdir
 	def initialize(url, destdir, has = {}, &block)
+		@caller = Kernel.caller
 		@url = url
 		@destdir = destdir
 		@args = ["-N"]
@@ -113,18 +116,18 @@ class InternetLocation
 		end
 	end
 	def search(dir=nil)
-		dir = ".downloads/#{@destdir}" if !dir
+		dir ||= ".downloads/#{@destdir}"
 		Dir.new(dir).each do |ifi|
 			next if ifi == "." || ifi == ".."
 			fi = File.join(dir, ifi)
 			if File.directory?(fi)
 				search(fi)
 			else
-				fi.sub!(/\A.downloads\//, '')
+				fi = fi[".downloads/#{@destdir}/".length .. -1]
 				gef = false
 				@matchers.each do |mat|
-					if mat.exp =~ fi
-						ij = InJob.new(fi, $~)
+					if mat.exp =~ "/"+fi
+						ij = InJob.new(@destdir+"/"+fi, $~)
 						mat.matched.push ij
 						mat.ma[$~.captures] = ij
 						gef = true
@@ -136,7 +139,11 @@ class InternetLocation
 					n = Notification.new("Unbekannt: #{fi}")
 					n.choice("Anzeigen") do
 						system("xdg-open '.downloads/#{fi}' > /dev/null 2> /dev/null &")
-						true
+						false
+					end
+					n.choice("Hinzufügen") do
+						MyFileDialog.new($mainwindow, self, fi)
+						false
 					end
 				end
 			end
@@ -150,6 +157,14 @@ class InternetLocation
 				end
 			end
 		end
+	end
+	def callerline
+		@caller.each do |c|
+			if c =~ /\A\(eval\):(\d+):in `block (\(\d+ levels\) |)in init'/
+				return $1.to_i
+			end
+		end
+		return nil
 	end
 end
 

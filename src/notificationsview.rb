@@ -8,7 +8,7 @@ class NotificationsView < Qt::Widget
 		super(parent)
 		@ui = Ui_Notificationsview_base.new
 		@ui.setupUi(self)
-		notificationActivated(Qt::ModelIndex.new, )
+		notificationActivated(Qt::ModelIndex.new)
 		
 		@model = NotificationsModel.new
 		@model.rowCount(Qt::ModelIndex.new)

@@ -27,20 +27,22 @@ KDE::CmdLineArgs.addCmdLineOptions(options)
 app = KDE::Application.new
 
 # see if we are starting with session management
-if app.sessionRestored?
-	KDE::MainWindow.each_restore do |n|
-		Unidown.new.restore(n)
-	end
-else
-	# no session.. just start up normally
-	args = KDE::CmdLineArgs.parsedArgs
-	if args.count == 0
-		Unidown.new.show
-	else
-		args.each do |arg|
-		Unidown.new.show
-		end
-		args.clear
-	end
-end
+# if app.sessionRestored?
+# 	KDE::MainWindow.each_restore do |n|
+# 		Unidown.new.restore(n)
+# 	end
+# else
+# 	# no session.. just start up normally
+# 	args = KDE::CmdLineArgs.parsedArgs
+# 	if args.count == 0
+# 		Unidown.new.show
+# 	else
+# 		args.each do |arg|
+# 		Unidown.new.show
+# 		end
+# 		args.clear
+# 	end
+# end
+$mainwindow = Unidown.new
+$mainwindow.show
 app.exec
