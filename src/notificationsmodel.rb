@@ -21,6 +21,8 @@ class NotificationsModel < Qt::AbstractListModel
 			ip = item(index)
 			if    role == Qt::DisplayRole && index.column == 0
 				return Qt::Variant.new(ip.title)
+			elsif role == Qt::DecorationRole && index.column == 0
+				return Qt::Variant.fromValue(ip.icon)
 			else
 				return Qt::Variant.new
 			end

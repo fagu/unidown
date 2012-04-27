@@ -136,13 +136,13 @@ class InternetLocation
 				end
 				if !gef
 					puts "Unbekannt: #{fi}"
-					n = Notification.new("Unbekannt: #{fi}")
-					n.choice("Anzeigen") do
-						system("xdg-open '.downloads/#{fi}' > /dev/null 2> /dev/null &")
-						false
-					end
+					n = Notification.new("Unbekannt: #{fi}", Qt::Icon.fromTheme("document-preview"))
 					n.choice("Hinzufügen") do
 						MyFileDialog.new($mainwindow, self, fi)
+						false
+					end
+					n.choice("Anzeigen") do
+						system("xdg-open '.downloads/#{destdir}/#{fi}' > /dev/null 2> /dev/null &")
 						false
 					end
 				end

@@ -52,11 +52,12 @@ class Notification < Qt::Object
 	def self.alll
 		return @@notifications
 	end
-	attr_accessor :title, :choices
+	attr_accessor :title, :icon, :choices
 	signals 'beforeclose(int)', :afterclose
-	def initialize(title)
+	def initialize(title, icon=nil)
 		super(nil)
 		@title = title
+		@icon = icon
 		@choices = []
 		@@notifications.push self
 	end
@@ -142,7 +143,7 @@ class Job
 				$stdout = ao
 				$stderr = ae
 				puts "[INTERNAL ERROR]"
-				n = Notification.new("Interner Fehler bei #{self.class} (Zeile #{callerline}, => #{@outfile})")
+				n = Notification.new("Interner Fehler bei #{self.class} (Zeile #{callerline}, => #{@outfile})", Qt::Icon.fromTheme("task-reject"))
 				n.choice("Logbuch anzeigen") do
 					system("kate", "../.log/#{@outfile}")
 					false
@@ -158,7 +159,7 @@ class Job
 					puts "[OK]"
 				else
 					puts "[FAILED]"
-					n = Notification.new("Interner Fehler bei #{self.class} (Zeile #{callerline}, => #{@outfile})")
+					n = Notification.new("Fehler bei #{self.class} (Zeile #{callerline}, => #{@outfile})", Qt::Icon.fromTheme("process-stop"))
 					n.choice("Logbuch anzeigen") do
 						system("kate", "../.log/#{@outfile}")
 						false
@@ -272,7 +273,7 @@ class SaveJobInner < Job
 	end
 	def rrun
 		ro = @children[0].realoutfile
-		n = Notification.new("Geändert: #{ro}")
+		n = Notification.new("Geändert: #{ro}", Qt::Icon.fromTheme("view-refresh"))
 		n.choice("Anzeigen") do
 			system("xdg-open '#{"../"+ro}' > /dev/null 2> /dev/null &")
 			FileUtils.ln(@children[0].outfile,@outfile)
@@ -485,7 +486,7 @@ class PrintJob < Job
 		return @printid
 	end
 	def rrun
-		n = Notification.new("#{@printid} drucken?")
+		n = Notification.new("#{@printid} drucken?", Qt::Icon.fromTheme("document-print"))
 		n.choice("Ja") do
 			if !UniJobsUtil::rc("lpr", "-o", "sides=two-sided-long-edge", @children[0].outfile)
 				@success = false
