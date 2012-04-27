@@ -8,10 +8,10 @@ class Unidown < KDE::XmlGuiWindow
 		setAcceptDrops(true)
 
 		spl = Qt::TabWidget.new(self)
-		@resultsview = ResultsView.new
-		spl.addTab @resultsview, "Ergebnisse"
 		@notificationsview = NotificationsView.new
 		spl.addTab @notificationsview, "Nachrichten"
+		@resultsview = ResultsView.new
+		spl.addTab @resultsview, "Ergebnisse"
 
 		setCentralWidget(spl)
 
