@@ -93,16 +93,8 @@ class Job
 		@@jobsbytype[self.class] ||= []
 		@@jobsbytype[self.class].push self
 	end
-	def callerline
-		@caller.each do |c|
-			if c =~ /\A\(eval\):(\d+):in `block (\(\d+ levels\) |)in init'/
-				return $1.to_i
-			end
-		end
-		return nil
-	end
 	def showconfig
-		system("kate", "-l", callerline, $unikernel.unidir+"/config.rb")
+		system("kate", "-l", Util.callerline(@caller).to_s, $unikernel.unidir+"/config.rb")
 	end
 	def run
 		return if @tried
@@ -143,7 +135,7 @@ class Job
 				$stdout = ao
 				$stderr = ae
 				puts "[INTERNAL ERROR]"
-				n = Notification.new("Interner Fehler bei #{self.class} (Zeile #{callerline}, => #{@outfile})", Qt::Icon.fromTheme("task-reject"))
+				n = Notification.new("Interner Fehler bei #{self.class} (Zeile #{Util.callerline(@caller)}, => #{@outfile})", Qt::Icon.fromTheme("task-reject"))
 				n.choice("Logbuch anzeigen") do
 					system("kate", "../.log/#{@outfile}")
 					false
@@ -160,7 +152,7 @@ class Job
 					puts "[OK]"
 				else
 					puts "[FAILED]"
-					n = Notification.new("Fehler bei #{self.class} (Zeile #{callerline}, => #{@outfile})", Qt::Icon.fromTheme("process-stop"))
+					n = Notification.new("Fehler bei #{self.class} (Zeile #{Util.callerline(@caller)}, => #{@outfile})", Qt::Icon.fromTheme("process-stop"))
 					n.choice("Logbuch anzeigen") do
 						system("kate", "../.log/#{@outfile}")
 						false

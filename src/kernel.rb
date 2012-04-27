@@ -8,6 +8,18 @@ require 'ostruct'
 require 'unijobss.rb'
 require 'myfiledialog.rb'
 
+module Util
+	def Util.callerline(bt)
+		bt.each do |c|
+			puts "err #{c}"
+			if  c =~ /\A\(eval\):(\d+):/
+				return $1.to_i
+			end
+		end
+		return nil
+	end
+end
+
 module JobIniter
 end
 
@@ -159,12 +171,7 @@ class InternetLocation
 		end
 	end
 	def callerline
-		@caller.each do |c|
-			if c =~ /\A\(eval\):(\d+):in `block (\(\d+ levels\) |)in init'/
-				return $1.to_i
-			end
-		end
-		return nil
+		Util.callerline(@caller)
 	end
 end
 
@@ -210,7 +217,7 @@ end
 require 'nokogiri'
 
 class UnidownKernel
-	attr_accessor :dodownload, :quiet, :remake, :unidir, :configA, :configB, :locations, :bookchapters, :books, :foundfile
+	attr_accessor :dodownload, :quiet, :remake, :unidir, :configA, :configB, :locations, :bookchapters, :books, :foundfile, :fatalerror
 	def initialize
 		@dodownload = true
 		@quiet = true
@@ -220,6 +227,7 @@ class UnidownKernel
 		@bookchapters = {}
 		@books = {}
 		@foundfile = {}
+		@fatalerror = false
 	end
 	def init
 		@oldsavedfiles = []
@@ -233,10 +241,15 @@ class UnidownKernel
 
 		time = Time.now.to_s
 		puts "### " + time + " " + "#"*(100-time.size)
-		ConfigEnv.new.instance_eval(IO.read("config.rb"))
-		ConfigAEnv.new.instance_eval(&@configA)
+		begin
+			ConfigEnv.new.instance_eval(IO.read("config.rb"))
+			ConfigAEnv.new.instance_eval(&@configA)
+		rescue Exception => e
+			rescueerror(e)
+		end
 	end
 	def download
+		return if @fatalerror
 		if @dodownload
 			threads = []
 			errmutex = Mutex.new
@@ -251,6 +264,7 @@ class UnidownKernel
 		end
 	end
 	def findjobs
+		return if @fatalerror
 		@locations.each do |loc|
 			loc.search
 		end
@@ -295,10 +309,15 @@ class UnidownKernel
 			
 			@books[b] = j
 		end
-		ConfigBEnv.new.instance_eval(&@configB)
+		begin
+			ConfigBEnv.new.instance_eval(&@configB)
+		rescue Exception => e
+			rescueerror(e)
+		end
 	end
 	
 	def runjobs
+		return if @fatalerror
 		FileUtils.mkpath ".mod"
 		FileUtils.mkpath ".tmp"
 		FileUtils.mkpath ".log"
@@ -325,6 +344,7 @@ class UnidownKernel
 	end
 	
 	def finalize
+		return if @fatalerror
 		@oldsavedfiles.each do |fi|
 			if !SaveJob.savedfiles[fi] && File.exists?(fi)
 				puts "rm #{fi}"
@@ -336,6 +356,24 @@ class UnidownKernel
 			SaveJob.savedfiles.each do |fi,spam|
 				sf.puts fi
 			end
+		end
+	end
+	
+	def rescueerror(e)
+		File.open('config.log','w') do |f|
+			f.puts e
+			f.puts e.backtrace
+		end
+		bt = [e.message] + e.backtrace
+		@fatalerror = true
+		n = Notification.new("Fehler beim Ausführen der Konfigurationsdatei (Zeile #{Util.callerline(bt)})", Qt::Icon.fromTheme("process-stop"))
+		n.choice("Logbuch anzeigen") do
+			system("kate", 'config.log')
+			false
+		end
+		n.choice("Konfiguration anzeigen") do
+			system("kate", "-l", Util.callerline(bt).to_s, $unikernel.unidir+"/config.rb")
+			false
 		end
 	end
 end
