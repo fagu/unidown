@@ -78,8 +78,8 @@ class Job
 	def self.jobs
 		@@jobs
 	end
-	def self.jobsbytype
-		@@jobsbytype
+	def self.jobsbytype(type)
+		@@jobsbytype[type] || []
 	end
 	attr_accessor :children
 	attr_accessor :outfile

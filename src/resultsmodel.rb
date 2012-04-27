@@ -96,7 +96,7 @@ class ResultsModel < Qt::AbstractItemModel
 	def initialize(parent=nil)
 		super(parent)
 		@root = ResultsItem.new("",$unikernel.unidir,nil,0)
-		Job.jobsbytype[SaveJob].each do |f|
+		Job.jobsbytype(SaveJob).each do |f|
 			li = f.realoutfile.split("/")
 			it = @root
 			li.each do |l|
