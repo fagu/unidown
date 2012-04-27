@@ -150,6 +150,7 @@ class Job
 				end
 				n.choice("Konfiguration anzeigen") do
 					showconfig
+					false
 				end
 			else
 				$stdout = ao
