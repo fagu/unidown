@@ -133,7 +133,11 @@ class InternetLocation
 				end
 				if !gef
 					puts "Unbekannt: #{fi}"
-					system("kdialog","--msgbox","Unbekannt: #{fi}") if !$unikernel.quiet
+					n = Notification.new("Unbekannt: #{fi}")
+					n.choice("Anzeigen") do
+						system("xdg-open '.downloads/#{fi}' > /dev/null 2> /dev/null &")
+						true
+					end
 				end
 			end
 		end

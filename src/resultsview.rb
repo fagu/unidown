@@ -5,9 +5,7 @@ class ResultsView < Qt::Widget
 	slots 'fileActivated(const QModelIndex&)'
 	slots :print, :showConfig
 
-	attr_reader :settings
-
-	def initialize( parent )
+	def initialize(parent = nil)
 		super(parent)
 		@ui = Ui_Resultsview_base.new
 		@ui.setupUi(self)
@@ -41,14 +39,6 @@ class ResultsView < Qt::Widget
 		return if !@ui.treeView.currentIndex.isValid
 		it = @model.item(@ui.treeView.currentIndex)
 		return if it.childCount != 0
-		ca = it.job.caller
-		ca.each do |c|
-			puts c
-			if c =~ /\A\(eval\):(\d+):in `block (\(\d+ levels\) |)in init'/
-				system("kate", "-l", $1, $unikernel.unidir+"/config.rb")
-			end
-		end
+		it.job.showconfig
 	end
-	
-private
 end

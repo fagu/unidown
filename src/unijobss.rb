@@ -28,23 +28,46 @@ module Asker
 	end
 end
 
-class Choice
-	attr_accessor :name, :func
-	def initialize(name,func)
+class Choice < Qt::Object
+	attr_accessor :name, :func, :notification, :dir
+	slots :run
+	def initialize(name,func,notification)
+		super(nil)
 		@name = name
 		@func = func
+		@notification = notification
+		@dir = Dir.pwd
 	end
 	def run
-		func.call
+		Dir.chdir(@dir) do
+			if func.call
+				@notification.doclose
+			end
+		end
 	end
 end
 
-class Notification
-	def initialize
+class Notification < Qt::Object
+	@@notifications = []
+	def self.alll
+		return @@notifications
+	end
+	attr_accessor :title, :choices
+	signals 'beforeclose(int)', :afterclose
+	def initialize(title)
+		super(nil)
+		@title = title
 		@choices = []
+		@@notifications.push self
 	end
 	def choice(name, &func)
-		@choices.push Choice.new(name,func)
+		@choices.push Choice.new(name,func,self)
+	end
+	def doclose
+		i = @@notifications.index(self)
+		emit beforeclose(i)
+		@@notifications.delete(self)
+		emit afterclose()
 	end
 end
 
@@ -64,16 +87,27 @@ class Job
 		@children = []
 		@caller = Kernel.caller
 		@success = false
+		@tried = false
 		@@jobs.push self
 # 		puts self
 		@@jobsbytype[self.class] ||= []
 		@@jobsbytype[self.class].push self
 	end
-	def caller
-		@caller
+	def callerline
+		@caller.each do |c|
+			puts c
+			if c =~ /\A\(eval\):(\d+):in `block (\(\d+ levels\) |)in init'/
+				return $1
+			end
+		end
+		return nil
+	end
+	def showconfig
+		system("kate", "-l", callerline, $unikernel.unidir+"/config.rb")
 	end
 	def run
-		return if @success
+		return if @tried
+		@tried = true
 		initchildren
 		@success = true
 		@children.each do |ch|
@@ -90,7 +124,7 @@ class Job
 		if change && @success
 			spec = "    Run #{self.class} => #{@outfile}"
 			spec += " "*(100-spec.length)
-			print spec if !(self.kind_of? SaveJob) && !(self.kind_of? InJob)
+			print spec
 			ao = $stdout
 			ae = $stderr
 			begin
@@ -104,21 +138,37 @@ class Job
 				end
 				rrun
 			rescue Exception => e
+				@success = false
 				puts e
 				puts e.backtrace
 				$stdout = ao
 				$stderr = ae
 				puts "[INTERNAL ERROR]"
-				system("kdialog","--error","Interner Fehler bei #{self.class}") if !$unikernel.quiet
+				n = Notification.new("Interner Fehler bei #{self.class} (Zeile #{callerline}, => #{@outfile})")
+				n.choice("Logbuch anzeigen") do
+					system("kate", "../.log/#{@outfile}")
+					false
+				end
+				n.choice("Konfiguration anzeigen") do
+					showconfig
+				end
 			else
 				$stdout = ao
 				$stderr = ae
 				FileUtils.rm Dir.glob("../.tmp/*")
 				if @success
-					puts "[OK]" if !(self.kind_of? SaveJob) && !(self.kind_of? InJob)
+					puts "[OK]"
 				else
-					puts "[FAILED]" if !(self.kind_of? SaveJob) && !(self.kind_of? InJob)
-					system("kdialog","--error","Fehler bei #{self.class}") if !$unikernel.quiet
+					puts "[FAILED]"
+					n = Notification.new("Interner Fehler bei #{self.class} (Zeile #{callerline}, => #{@outfile})")
+					n.choice("Logbuch anzeigen") do
+						system("kate", "../.log/#{@outfile}")
+						false
+					end
+					n.choice("Konfiguration anzeigen") do
+						showconfig
+						false
+					end
 				end
 			end
 			$stdout.flush
@@ -138,7 +188,7 @@ class Job
 	def >>(x)
 		if x.kind_of?(Job)
 			x.children.push self
-			if x.kind_of?(PrintJob)
+			if x.kind_of?(PrintJob) || x.kind_of?(SaveJobInner)
 				return self
 			end
 		else
@@ -192,10 +242,9 @@ class SaveJob < Job
 	@@savedfiles = {}
 # 	@devel = rand(1000000)
 	attr_accessor :realoutfile, :printjobs, :chapterprops
-	def initialize(outfile, notify=true)
+	def initialize(outfile)
 		super()
 		@realoutfile = outfile
-		@notify = notify
 		@printjobs = []
 		@chapterprops = []
 	end
@@ -207,27 +256,45 @@ class SaveJob < Job
 		if !File.exist?("../"+@realoutfile) && File.exist?(@outfile)
 			FileUtils.rm(@outfile)
 		end
+		return @realoutfile
 	end
 	def rrun
-		exbef = File.exist?("../"+@realoutfile)
 		FileUtils.mkdir File.dirname("../"+@realoutfile) if !File.directory? File.dirname("../"+@realoutfile)
 		FileUtils.cp(@children[0].outfile,"../"+@realoutfile)
 		FileUtils.ln(@children[0].outfile,@outfile)
-		puts "#{(exbef ? "~" : "+")} #{@realoutfile}"
-		if @notify && !$unikernel.quiet
-			ans = Asker.ask("#{(exbef ? "Geändert" : "Neu")}: #{@realoutfile}\nÖffnen?", ["Ja","Nein"])
-			if ans == 1
-				system("xdg-open '#{"../"+@realoutfile}' > /dev/null 2> /dev/null &")
-			end
-		end
 	end
 	def self.savedfiles
 		@@savedfiles
 	end
 end
+class SaveJobInner < Job
+	def initialize()
+		super()
+	end
+	def ggenout
+		return ""
+	end
+	def rrun
+		ro = @children[0].realoutfile
+		n = Notification.new("Geändert: #{ro}")
+		n.choice("Anzeigen") do
+			system("xdg-open '#{"../"+ro}' > /dev/null 2> /dev/null &")
+			FileUtils.ln(@children[0].outfile,@outfile)
+			true
+		end
+		n.choice("Ignorieren") do
+			FileUtils.ln(@children[0].outfile,@outfile)
+			true
+		end
+	end
+end
 module JobIniter
 	def save(x, notify=true)
-		return SaveJob.new(x, notify)
+		j = SaveJob.new(x)
+		if notify
+			j = j >> SaveJobInner.new
+		end
+		return j
 	end
 end
 
@@ -251,7 +318,6 @@ class PDFBookProp
 		return x
 	end
 	def ggenouthelper
-		puts "hi "+@job.class.to_s
 		@job.chapterprops.push self if @job.kind_of?(SaveJob)
 		erg = ""
 		erg += @name if @name
@@ -313,13 +379,14 @@ class PDFBookJob < Job
 		return erg
 	end
 	def rrun
-# 		namen = []
-# 		@children.each do |c|
-# 			na = "../.tmp/tmp#{namen.size}.pdf"
-# 			FileUtils.cp(c.outfile, na)
-# 			namen.push na
-# 		end
-		names = pdfs.map {|x| x.outfile }
+		names = []
+		@children.each do |c|
+			na = "../.tmp/tmp#{names.size}.pdf"
+			puts Dir.pwd
+			FileUtils.cp(c.outfile, na)
+			names.push na
+		end
+# 		names = pdfs.map {|x| x.outfile }
 		if !UniJobsUtil::rc("pdftk", *names, "cat", "output", "../.tmp/book.pdf")
 # 		if !UniJobsUtil::rc("pdfjam", "--outfile", "../.tmp/book.pdf", *namen)
 			@success = false
@@ -427,17 +494,18 @@ class PrintJob < Job
 		return @printid
 	end
 	def rrun
-		if !$unikernel.quiet
-			ans = Asker.ask("#{@children[0].realoutfile if @children[0].kind_of?(SaveJob)} drucken?", ["Ja","Nein","Später"])
-			if ans == 1
-				if !UniJobsUtil::rc("lpr", "-o", "sides=two-sided-long-edge", @children[0].outfile)
-					@success = false
-				end
-				FileUtils.touch @outfile
+		n = Notification.new("#{@printid} drucken?")
+		n.choice("Ja") do
+			if !UniJobsUtil::rc("lpr", "-o", "sides=two-sided-long-edge", @children[0].outfile)
+				@success = false
 			end
-			if ans == 2
-				FileUtils.touch @outfile
-			end
+			FileUtils.touch @outfile
+			true
+		end
+		n.choice("Nein") do
+			FileUtils.touch @outfile
+			puts "touch #{@outfile}"
+			true
 		end
 	end
 end
