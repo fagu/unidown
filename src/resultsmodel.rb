@@ -137,12 +137,6 @@ class ResultsModel < Qt::AbstractItemModel
 			ip = index.internalPointer
 			if    role == Qt::DisplayRole && index.column == 0
 				return Qt::Variant.new(ip.name)
-# 			elsif role == Qt::DisplayRole && index.column == 1
-# 				return Qt::Variant.new(ip.childCount)
-# 			elsif role == Qt::ToolTipRole
-# 				return Qt::Variant.new("bla")
-# 			elsif role == Qt::CheckStateRole
-# 				return Qt::Variant.fromValue(Qt::PartiallyChecked)
 			elsif role == Qt::DecorationRole && index.column == 0
 				return Qt::Variant.fromValue(ip.icon)
 			elsif role == Qt::DecorationRole && index.column == 1 && ip.job && !ip.job.printjobs.empty?

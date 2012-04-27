@@ -89,7 +89,6 @@ class Job
 		@success = false
 		@tried = false
 		@@jobs.push self
-# 		puts self
 		@@jobsbytype[self.class] ||= []
 		@@jobsbytype[self.class].push self
 	end
@@ -199,7 +198,6 @@ class Job
 end
 
 class InJob < Job
-	#@devel = rand(1000000)
 	attr_accessor :infile
 	attr_accessor :params
 	attr_accessor :i1, :i2
@@ -239,7 +237,6 @@ end
 
 class SaveJob < Job
 	@@savedfiles = {}
-# 	@devel = rand(1000000)
 	attr_accessor :realoutfile, :printjobs, :chapterprops
 	def initialize(outfile)
 		super()
@@ -298,7 +295,6 @@ module JobIniter
 end
 
 class PDFBookProp
-	#@devel = rand(1000000)
 	attr_accessor :name
 	attr_accessor :job
 	attr_accessor :props
@@ -358,7 +354,6 @@ module JobIniter
 end
 
 class PDFBookJob < Job
-# 	@devel = rand(1000000)
 	attr_accessor :props
 	def initialize()
 		super()
@@ -386,7 +381,7 @@ class PDFBookJob < Job
 		end
 # 		names = pdfs.map {|x| x.outfile }
 		if !UniJobsUtil::rc("pdftk", *names, "cat", "output", "../.tmp/book.pdf")
-# 		if !UniJobsUtil::rc("pdfjam", "--outfile", "../.tmp/book.pdf", *namen)
+# 		if !UniJobsUtil::rc("pdfjam", "--outfile", "../.tmp/book.pdf", *names)
 			@success = false
 		end
 		File.open("../.tmp/bookmarks.txt", "w") do |f|
@@ -425,7 +420,6 @@ class PDFBookJob < Job
 end
 
 class PDFTitleJob < Job
-	#@devel = rand(1000000)
 	def initialize(title)
 		super()
 		@title = title
@@ -461,7 +455,6 @@ module JobIniter
 end
 
 class PDFShrinkJob < Job
-	#@devel = rand(1000000)
 	def initialize
 		super()
 	end

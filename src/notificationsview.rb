@@ -13,10 +13,6 @@ class NotificationsView < Qt::Widget
 		@model = NotificationsModel.new
 		@model.rowCount(Qt::ModelIndex.new)
 		@ui.list.setModel @model
-# 		@ui.list.header.setResizeMode 0, Qt::HeaderView::Stretch
-# 		@ui.list.header.setResizeMode 1, Qt::HeaderView::ResizeToContents
-# 		@ui.list.header.setResizeMode 2, Qt::HeaderView::ResizeToContents
-# 		@ui.list.header.setStretchLastSection false
 		connect(@ui.list.selectionModel, SIGNAL('currentChanged(const QModelIndex&, const QModelIndex&)'), self, SLOT('notificationActivated(const QModelIndex&, const QModelIndex&)'))
 	end
 	
