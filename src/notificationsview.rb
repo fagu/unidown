@@ -15,6 +15,7 @@ class NotificationsView < Qt::Widget
 		@ui.list.setModel @model
 		connect(@ui.list.selectionModel, SIGNAL('currentChanged(const QModelIndex&, const QModelIndex&)'), self, SLOT('notificationActivated(const QModelIndex&, const QModelIndex&)'))
 		connect(@ui.list, SIGNAL('doubleClicked(const QModelIndex&)'), self, SLOT('notificationDoubleClicked(const QModelIndex&)'))
+		notificationActivated(Qt::ModelIndex.new)
 		@ui.list.selectionModel.setCurrentIndex(@model.index(0), Qt::ItemSelectionModel::ClearAndSelect)
 		@ui.list.setFocus(Qt::PopupFocusReason)
 		@ui.list.grabKeyboard
