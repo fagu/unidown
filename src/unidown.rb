@@ -17,21 +17,21 @@ class Unidown < KDE::XmlGuiWindow
 		spl.addTab @resultsview, "Ergebnisse"
 
 		setCentralWidget(spl)
-
-		setupActions
 		
 		setupTrayIcon
 		connect(NotificationHandler.han, SIGNAL('closednotification()'), self, SLOT('reloadTray()'))
 
+		setupActions
+		
 		setupGUI(ToolBar | Keys | Save | Create | StatusBar, "/usr/local/share/apps/unidown/unidownui.rc")
 		
 		@timer = Qt::Timer.new(self)
 		@timer.setSingleShot(true)
 		@timer.setInterval(1000*60*30)
 		connect(@timer, SIGNAL("timeout()"), self, SLOT(:reload))
-		reload
 		
 		show
+		reload
 		
 		@notificationsview.ui.list.focus = Qt::ActiveWindowFocusReason
 		
@@ -43,13 +43,6 @@ class Unidown < KDE::XmlGuiWindow
 		@no.sendEvent
 		@no.ref
 # 		KDE::Notification::event("blub", "fdsa", "fdfdsad", Qt::Pixmap.new, self, KDE::Notification::Persistent)
-	end
-	
-	def systrayActivated(r)
-# 		if r == Qt::SystemTrayIcon::Trigger
-# 			setVisible(!visible)
-# 			@trayIcon.showMessage("Titel", "VIel Spam\nfdaf")
-# 		end
 	end
 
 private
@@ -68,15 +61,16 @@ private
 		action.setShortcut(KDE::Shortcut.new(Qt::Key_F5))
 		action.setIcon(Qt::Icon.fromTheme("view-refresh"))
 		actionCollection.addAction("reload", action)
+		@trayIcon.contextMenu.addAction(action)
 		connect(action, SIGNAL('triggered(bool)'), self, SLOT(:reload))
 	end
 	
 	def setupTrayIcon
-		@trayIcon = KDE::SystemTrayIcon.new(self)
-# 		@trayIcon.setIcon(Qt::Icon.fromTheme("unidown"))
-		@trayIcon.setIcon(KDE::Icon.new("unidown"))
-		@trayIcon.show
-		connect(@trayIcon, SIGNAL('activated(QSystemTrayIcon::ActivationReason)'), self, SLOT('systrayActivated(QSystemTrayIcon::ActivationReason)'))
+		@trayIcon = KDE::StatusNotifierItem.new(self)
+		@trayIcon.title = "Unizeug"
+		@trayIcon.category = KDE::StatusNotifierItem::Communications
+		@trayIcon.setIconByName("unidown")
+		reloadTray
 	end
 	
 	def reload
@@ -103,9 +97,13 @@ private
 	
 	def reloadTray
 		if Notification.alll.empty?
-			@trayIcon.setIcon(KDE::Icon.new("unidown"))
+			@trayIcon.setIconByName("unidown")
+			@trayIcon.status = KDE::StatusNotifierItem::Active
 		else
-			@trayIcon.setIcon(KDE::Icon.new("unidownnotify"))
+			@trayIcon.setIconByName("unidownnotify")
+			@trayIcon.status = KDE::StatusNotifierItem::Active
+# 			@trayIcon.status = KDE::StatusNotifierItem::NeedsAttention
+			@trayIcon.showMessage("Unizeug", "Es gibt Neuigkeiten:\n"+Notification.alll.map{|x|x.title}.join("\n"), "unidown", 30000)
 		end
 	end
 end
