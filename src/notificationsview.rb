@@ -4,6 +4,7 @@ require 'notificationsmodel.rb'
 class NotificationsView < Qt::Widget
 	slots 'notificationActivated(const QModelIndex&, const QModelIndex&)'
 	slots 'notificationDoubleClicked(const QModelIndex&)'
+	attr_reader :ui
 	
 	def initialize(parent = nil)
 		super(parent)
@@ -11,7 +12,6 @@ class NotificationsView < Qt::Widget
 		@ui.setupUi(self)
 		
 		reload
-		@ui.list.setFocus(Qt::PopupFocusReason)
 	end
 	
 	def notificationActivated(index, spam=nil)

@@ -33,6 +33,8 @@ class Unidown < KDE::XmlGuiWindow
 		
 		show
 		
+		@notificationsview.ui.list.focus = Qt::ActiveWindowFocusReason
+		
 		@no = KDE::Notification.new("blub")
 # 		@no.setFlags(@no.flags)
 		@no.setText("fdsaf")

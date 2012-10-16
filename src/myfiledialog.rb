@@ -14,9 +14,9 @@ class MyFileDialog < KDE::Dialog
 		setMinimumWidth(800)
 		@ui.location.setText("<b>#{loc.destdir} (#{loc.url})</b>")
 		@ui.pattern.setText(Regexp.escape(file))
-		@ui.istitle.setChecked(true)
 		@ui.save.setText(loc.destdir+"/")
 		@ui.chapter_book.setText(loc.destdir)
+		@ui.istitle.checked = @ui.chapter.checked = loc.url.end_with?(".pdf")
 		
 		setMainWidget(@mainwidget)
 		
