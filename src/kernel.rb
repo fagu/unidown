@@ -68,6 +68,9 @@ class InternetLocation
 		instance_eval(&block)
 		$unikernel.locations.push(self)
 	end
+	def showconfig
+		system("kate", "-l", Util.callerline(@caller).to_s, $unikernel.unidir+"/config.rb")
+	end
 	def map(regexp, &pr)
 		ma = Matcher.new(regexp)
 		ma.doers.push pr
@@ -117,13 +120,23 @@ class InternetLocation
 			end
 		end
 	end
-	def download(errmutex)
+	def download
 		FileUtils.mkpath ".downloads/#{@destdir}"
-		if !Kernel.system("wget", *@args)
-			errmutex.synchronize do
-				$stderr.puts "Download to .downloads/#{@destdir} failed:"
-				$stderr.puts "wget #{@args.join(' ')}"
-			end
+		@success = Kernel.system("wget", *@args)
+	end
+	def printErrors
+		return if @success
+		$stderr.puts "Download to .downloads/#{@destdir} failed:"
+		$stderr.puts "wget #{@args.join(' ')}"
+		n = Notification.new("Fehler beim Runterladen von #{@url} (Zeile #{Util.callerline(@caller)})", Qt::Icon.fromTheme("process-stop"))
+		n.choice("Logbuch anzeigen") do
+			puts $unikernel.unidir+"/.downloads/#{@destdir}.log"
+			system("kate", $unikernel.unidir+"/.downloads/#{@destdir}.log")
+			false
+		end
+		n.choice("Konfiguration anzeigen") do
+			showconfig
+			false
 		end
 	end
 	def search(dir=nil)
@@ -251,14 +264,16 @@ class UnidownKernel
 		return if @fatalerror
 		if @dodownload
 			threads = []
-			errmutex = Mutex.new
 			@locations.each do |loc|
 				threads.push(Thread.new do
-					loc.download(errmutex)
+					loc.download
 				end)
 			end
 			threads.each do |t|
 				t.join
+			end
+			@locations.each do |loc|
+				loc.printErrors
 			end
 		end
 	end
