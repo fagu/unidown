@@ -85,6 +85,7 @@ private
 		Job.clear
 		SaveJob.clear
 		puts "reload..."
+		start = Time.new
 		$unikernel = UnidownKernel.new
 		Dir.chdir $unikernel.unidir do
 			$unikernel.init
@@ -101,7 +102,7 @@ private
 			@trayIcon.showMessage("Unizeug", "Es gibt Neuigkeiten:\n"+Notification.alll.map{|x|x.title}.join("\n"), "unidown", 30000)
 		end
 		statusBar.removeItem(0) if statusBar.hasItem(0)
-		statusBar.insertPermanentItem("Zuletzt aktualisiert #{Time.new.strftime 'am %d.%m.%Y um %H:%M:%S'}",0)
+		statusBar.insertPermanentItem("Zuletzt aktualisiert #{Time.new.strftime 'am %d.%m.%Y um %H:%M:%S'} (Dauer #{'%.1f' % (Time.new-start)} Sekunden)",0)
 		@timer.start
 	end
 	
