@@ -23,9 +23,8 @@ class Unidown < KDE::XmlGuiWindow
 		setupTrayIcon
 		connect(NotificationHandler.han, SIGNAL('closednotification()'), self, SLOT('reloadTray()'))
 
-		setupGUI(ToolBar | Keys | Save | Create, "/usr/local/share/apps/unidown/unidownui.rc")
+		setupGUI(ToolBar | Keys | Save | Create | StatusBar, "/usr/local/share/apps/unidown/unidownui.rc")
 		
-		statusBar.hide
 		@timer = Qt::Timer.new(self)
 		@timer.setSingleShot(true)
 		@timer.setInterval(1000*60*60)
@@ -98,6 +97,7 @@ private
 		@resultsview.reload
 		@notificationsview.reload
 		reloadTray
+		statusBar.showMessage("Zuletzt aktualisiert #{Time.new.strftime 'am %d.%m.%Y um %H:%M:%S'}")
 		@timer.start
 	end
 	
