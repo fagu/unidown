@@ -30,7 +30,7 @@ class Unidown < KDE::XmlGuiWindow
 		@timer.setInterval(1000*60*30)
 		connect(@timer, SIGNAL("timeout()"), self, SLOT(:reloaddown))
 		
-		show
+# 		show
 		reload
 		
 		@notificationsview.ui.list.focus = Qt::ActiveWindowFocusReason
