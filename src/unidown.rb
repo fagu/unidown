@@ -34,15 +34,6 @@ class Unidown < KDE::XmlGuiWindow
 		reload
 		
 		@notificationsview.ui.list.focus = Qt::ActiveWindowFocusReason
-		
-		@no = KDE::Notification.new("blub")
-# 		@no.setFlags(@no.flags)
-		@no.setText("fdsaf")
-		@no.setTitle("fdsafds")
-# 		@no.setActions(["fdsaf"])
-		@no.sendEvent
-		@no.ref
-# 		KDE::Notification::event("blub", "fdsa", "fdfdsad", Qt::Pixmap.new, self, KDE::Notification::Persistent)
 	end
 
 private
