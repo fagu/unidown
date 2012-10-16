@@ -9,9 +9,7 @@ class ResultsView < Qt::Widget
 		super(parent)
 		@ui = Ui_Resultsview_base.new
 		@ui.setupUi(self)
-
-		@model = ResultsModel.new
-		@ui.treeView.setModel @model
+		reload
 		@ui.treeView.header.setResizeMode 0, Qt::HeaderView::Stretch
 		@ui.treeView.header.setResizeMode 1, Qt::HeaderView::ResizeToContents
 		@ui.treeView.header.setResizeMode 2, Qt::HeaderView::ResizeToContents
@@ -40,5 +38,10 @@ class ResultsView < Qt::Widget
 		it = @model.item(@ui.treeView.currentIndex)
 		return if it.childCount != 0
 		it.job.showconfig
+	end
+	
+	def reload
+		@model = ResultsModel.new
+		@ui.treeView.setModel @model
 	end
 end

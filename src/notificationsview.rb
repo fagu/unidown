@@ -10,13 +10,7 @@ class NotificationsView < Qt::Widget
 		@ui = Ui_Notificationsview_base.new
 		@ui.setupUi(self)
 		
-		@model = NotificationsModel.new
-		@model.rowCount(Qt::ModelIndex.new)
-		@ui.list.setModel @model
-		connect(@ui.list.selectionModel, SIGNAL('currentChanged(const QModelIndex&, const QModelIndex&)'), self, SLOT('notificationActivated(const QModelIndex&, const QModelIndex&)'))
-		connect(@ui.list, SIGNAL('doubleClicked(const QModelIndex&)'), self, SLOT('notificationDoubleClicked(const QModelIndex&)'))
-		notificationActivated(Qt::ModelIndex.new)
-		@ui.list.selectionModel.setCurrentIndex(@model.index(0), Qt::ItemSelectionModel::ClearAndSelect)
+		reload
 		@ui.list.setFocus(Qt::PopupFocusReason)
 		@ui.list.grabKeyboard
 	end
@@ -55,6 +49,19 @@ class NotificationsView < Qt::Widget
 	
 	def notificationDoubleClicked(index)
 		it = @model.item(index)
+		return if !it
 		it.choices[0].run
+	end
+	
+	def reload
+		@model = NotificationsModel.new
+		@model.rowCount(Qt::ModelIndex.new)
+		@ui.list.setModel @model
+		@ui.list.selectionModel.setCurrentIndex(@model.index(0), Qt::ItemSelectionModel::ClearAndSelect)
+		connect(@ui.list.selectionModel, SIGNAL('currentChanged(const QModelIndex&, const QModelIndex&)'), self, SLOT('notificationActivated(const QModelIndex&, const QModelIndex&)'))
+		connect(@ui.list, SIGNAL('doubleClicked(const QModelIndex&)'), self, SLOT('notificationDoubleClicked(const QModelIndex&)'))
+		@ui.list.clearSelection
+		@ui.list.setCurrentIndex(@model.index(0))
+		notificationActivated(@model.index(0))
 	end
 end

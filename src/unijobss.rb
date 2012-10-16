@@ -52,6 +52,9 @@ class Notification < Qt::Object
 	def self.alll
 		return @@notifications
 	end
+	def self.clear
+		@@notifications = []
+	end
 	attr_accessor :title, :icon, :choices
 	signals 'beforeclose(int)', :afterclose
 	def initialize(title, icon=nil)
@@ -80,6 +83,10 @@ class Job
 	end
 	def self.jobsbytype(type)
 		@@jobsbytype[type] || []
+	end
+	def self.clear
+		@@jobs = []
+		@@jobsbytype = {}
 	end
 	attr_accessor :children
 	attr_accessor :outfile
@@ -121,8 +128,8 @@ class Job
 			begin
 				$stdout = File.open("../.log/#{@outfile}","w")
 				$stderr = $stdout
-				STDOUT.reopen($stdout)
-				STDERR.reopen($stderr)
+# 				STDOUT.reopen($stdout)
+# 				STDERR.reopen($stderr)
 				puts "#{self.class}: #{(@children.map { |ch| ch.outfile }).join ", "} => #{@outfile} initialized from"
 				for c in @caller
 					puts "    "+c
@@ -174,6 +181,9 @@ class Job
 		bla = ggenout
 		bla = "#{self.class}\n"+@children.map{|c|c.outfile}.join("\n")+"\n#{bla}"
 		@outfile = Digest::MD5.hexdigest(bla)
+		aftergenout
+	end
+	def aftergenout
 	end
 	def initchildren
 	end
@@ -231,6 +241,9 @@ end
 
 class SaveJob < Job
 	@@savedfiles = {}
+	def self.clear
+		@@savedfiles = {}
+	end
 	attr_accessor :realoutfile, :printjobs, :chapterprops
 	def initialize(outfile)
 		super()
@@ -243,10 +256,12 @@ class SaveJob < Job
 			puts "Doppelbelegung von #{@realoutfile}"
 		end
 		@@savedfiles[@realoutfile] = true
+		return @realoutfile
+	end
+	def aftergenout
 		if !File.exist?("../"+@realoutfile) && File.exist?(@outfile)
 			FileUtils.rm(@outfile)
 		end
-		return @realoutfile
 	end
 	def rrun
 		FileUtils.mkdir File.dirname("../"+@realoutfile) if !File.directory? File.dirname("../"+@realoutfile)

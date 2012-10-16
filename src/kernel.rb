@@ -222,7 +222,7 @@ class UnidownKernel
 		@dodownload = true
 		@quiet = true
 		@remake = false
-		@unidir = '/home/fabian/programmieren/skripte/unidowntest'
+		@unidir = ENV['UNIDIR']
 		@locations = []
 		@bookchapters = {}
 		@books = {}
@@ -357,6 +357,11 @@ class UnidownKernel
 				sf.puts fi
 			end
 		end
+		
+		$stdout.flush
+		$stderr.flush
+		$stdout = STDOUT
+		$stderr = STDERR
 	end
 	
 	def rescueerror(e)
@@ -377,5 +382,3 @@ class UnidownKernel
 		end
 	end
 end
-
-$unikernel = UnidownKernel.new

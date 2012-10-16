@@ -1,0 +1,12 @@
+[Global]
+IconName=warning
+Comment=Von-der-Uni-Zeug-Runterlader
+Name=unidown
+[Context/spam]
+Name=Group name
+Comment=The name of the group for contacts
+[Event/blub]
+Name=New email
+Comment=You have got a new email
+Contexts=spam
+Action=Sound|Popup
