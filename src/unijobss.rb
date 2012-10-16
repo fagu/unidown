@@ -47,6 +47,16 @@ class Choice < Qt::Object
 	end
 end
 
+class NotificationHandler < Qt::Object
+	@@han = NotificationHandler.new
+	def self.han
+		return @@han
+	end
+	signals :closednotification
+	def initialize
+	end
+end
+
 class Notification < Qt::Object
 	@@notifications = []
 	def self.alll
@@ -63,6 +73,7 @@ class Notification < Qt::Object
 		@icon = icon
 		@choices = []
 		@@notifications.push self
+		connect(self, SIGNAL('afterclose()'), NotificationHandler.han, SIGNAL('closednotification()'))
 	end
 	def choice(name, &func)
 		@choices.push Choice.new(name,func,self)

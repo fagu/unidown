@@ -2,7 +2,7 @@ require 'resultsview.rb'
 require 'notificationsview.rb'
 
 class Unidown < KDE::XmlGuiWindow
-	slots 'systrayActivated(QSystemTrayIcon::ActivationReason)', :reload
+	slots 'systrayActivated(QSystemTrayIcon::ActivationReason)', :reload, :reloadTray
 	def initialize()
 		super()
 
@@ -21,6 +21,7 @@ class Unidown < KDE::XmlGuiWindow
 		setupActions
 		
 		setupTrayIcon
+		connect(NotificationHandler.han, SIGNAL('closednotification()'), self, SLOT('reloadTray()'))
 
 		setupGUI(ToolBar | Keys | Save | Create, "/usr/local/share/apps/unidown/unidownui.rc")
 		
@@ -96,11 +97,15 @@ private
 		puts "finished!"
 		@resultsview.reload
 		@notificationsview.reload
+		reloadTray
+		@timer.start
+	end
+	
+	def reloadTray
 		if Notification.alll.empty?
 			@trayIcon.setIcon(KDE::Icon.new("unidown"))
 		else
 			@trayIcon.setIcon(KDE::Icon.new("unidownnotify"))
 		end
-		@timer.start
 	end
 end
