@@ -27,7 +27,7 @@ class Unidown < KDE::XmlGuiWindow
 		
 		@timer = Qt::Timer.new(self)
 		@timer.setSingleShot(true)
-		@timer.setInterval(1000*60*60)
+		@timer.setInterval(1000*60*30)
 		connect(@timer, SIGNAL("timeout()"), self, SLOT(:reload))
 		reload
 		
