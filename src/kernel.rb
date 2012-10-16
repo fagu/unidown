@@ -341,6 +341,19 @@ class UnidownKernel
 				end
 			end
 		end
+		
+		SaveJob.savedfiles.each do |f,c|
+			if c.size > 1
+				puts "Mehrfachbelegung von #{f} (Zeilen #{c.map{|x|Util.callerline(x.caller).to_s}.join(', ')})"
+				n = Notification.new("Mehrfachbelegung von #{f} (Zeilen #{c.map{|x|Util.callerline(x.caller).to_s}.join(', ')})", Qt::Icon.fromTheme("process-stop"))
+				c.each_with_index do |x,i|
+					n.choice("Konfiguration #{i+1}") do
+						x.showconfig
+						false
+					end
+				end
+			end
+		end
 	end
 	
 	def finalize

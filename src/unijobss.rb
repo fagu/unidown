@@ -102,6 +102,7 @@ class Job
 	attr_accessor :children
 	attr_accessor :outfile
 	attr_accessor :success
+	attr_reader :caller
 	def initialize
 		@children = []
 		@caller = Kernel.caller
@@ -252,6 +253,9 @@ end
 
 class SaveJob < Job
 	@@savedfiles = {}
+	def self.savedfiles
+		@@savedfiles
+	end
 	def self.clear
 		@@savedfiles = {}
 	end
@@ -263,10 +267,8 @@ class SaveJob < Job
 		@chapterprops = []
 	end
 	def ggenout
-		if @@savedfiles[@realoutfile] == true
-			puts "Doppelbelegung von #{@realoutfile}"
-		end
-		@@savedfiles[@realoutfile] = true
+		@@savedfiles[@realoutfile] ||= []
+		@@savedfiles[@realoutfile] << self
 		return @realoutfile
 	end
 	def aftergenout
