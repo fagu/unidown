@@ -11,7 +11,6 @@ require 'myfiledialog.rb'
 module Util
 	def Util.callerline(bt)
 		bt.each do |c|
-			puts "err #{c}"
 			if  c =~ /\A\(eval\):(\d+):/
 				return $1.to_i
 			end
