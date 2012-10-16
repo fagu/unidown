@@ -85,8 +85,8 @@ private
 		puts "reload..."
 		$unikernel = UnidownKernel.new
 		Dir.chdir $unikernel.unidir do
-			# $kernel.download
 			$unikernel.init
+			$unikernel.download
 			$unikernel.findjobs
 			$unikernel.runjobs
 			$unikernel.finalize
