@@ -97,6 +97,9 @@ private
 		@resultsview.reload
 		@notificationsview.reload
 		reloadTray
+		if !Notification.alll.empty?
+			@trayIcon.showMessage("Unizeug", "Es gibt Neuigkeiten:\n"+Notification.alll.map{|x|x.title}.join("\n"), "unidown", 30000)
+		end
 		statusBar.removeItem(0) if statusBar.hasItem(0)
 		statusBar.insertPermanentItem("Zuletzt aktualisiert #{Time.new.strftime 'am %d.%m.%Y um %H:%M:%S'}",0)
 		@timer.start
@@ -110,7 +113,6 @@ private
 			@trayIcon.setIconByName("unidownnotify")
 			@trayIcon.status = KDE::StatusNotifierItem::Active
 # 			@trayIcon.status = KDE::StatusNotifierItem::NeedsAttention
-			@trayIcon.showMessage("Unizeug", "Es gibt Neuigkeiten:\n"+Notification.alll.map{|x|x.title}.join("\n"), "unidown", 30000)
 		end
 	end
 end
