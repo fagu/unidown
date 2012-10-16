@@ -12,7 +12,6 @@ class NotificationsView < Qt::Widget
 		
 		reload
 		@ui.list.setFocus(Qt::PopupFocusReason)
-		@ui.list.grabKeyboard
 	end
 	
 	def notificationActivated(index, spam=nil)
