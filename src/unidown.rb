@@ -2,7 +2,7 @@ require 'resultsview.rb'
 require 'notificationsview.rb'
 
 class Unidown < KDE::XmlGuiWindow
-	slots 'systrayActivated(QSystemTrayIcon::ActivationReason)', :reloaddown, :reloadnodown, :reloadTray
+	slots 'systrayActivated(QSystemTrayIcon::ActivationReason)', :reloaddown, :reloadnodown, :reloadTray, :showConfig
 	def initialize()
 		super()
 
@@ -10,13 +10,13 @@ class Unidown < KDE::XmlGuiWindow
 		
 		setAcceptDrops(true)
 
-		spl = Qt::TabWidget.new(self)
+		@spl = Qt::TabWidget.new(self)
 		@notificationsview = NotificationsView.new
-		spl.addTab @notificationsview, "Nachrichten"
+		@spl.addTab @notificationsview, "Nachrichten"
 		@resultsview = ResultsView.new
-		spl.addTab @resultsview, "Ergebnisse"
+		@spl.addTab @resultsview, "Ergebnisse"
 
-		setCentralWidget(spl)
+		setCentralWidget(@spl)
 		
 		setupTrayIcon
 		connect(NotificationHandler.han, SIGNAL('closednotification()'), self, SLOT('reloadTray()'))
@@ -49,7 +49,7 @@ private
 		action = KDE::Action.new(i18n("Konfiguration anzeigen"), self)
 		action.setShortcut(KDE::Shortcut.new(Qt::CTRL + Qt::Key_K))
 		actionCollection.addAction("file_config", action)
-		connect(action, SIGNAL('triggered(bool)'), @resultsview, SLOT(:showConfig))
+		connect(action, SIGNAL('triggered(bool)'), self, SLOT(:showConfig))
 		
 		action = KDE::Action.new(i18n("Aktualisieren"), self)
 		action.setShortcut(KDE::Shortcut.new(Qt::Key_F5))
@@ -113,6 +113,14 @@ private
 			@trayIcon.setIconByName("unidownnotify")
 			@trayIcon.status = KDE::StatusNotifierItem::Active
 # 			@trayIcon.status = KDE::StatusNotifierItem::NeedsAttention
+		end
+	end
+	
+	def showConfig
+		if @spl.currentIndex != 1
+			system("kate", $unikernel.unidir+"/config.rb")
+		else
+			@resultsview.showConfig
 		end
 	end
 end

@@ -3,7 +3,7 @@ require 'resultsmodel.rb'
 
 class ResultsView < Qt::Widget
 	slots 'fileActivated(const QModelIndex&)'
-	slots :print, :showConfig
+	slots :print
 
 	def initialize(parent = nil)
 		super(parent)
