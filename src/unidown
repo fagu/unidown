@@ -1,0 +1,2 @@
+#!/bin/bash
+krubyapplication /usr/local/share/apps/unidown/main.rb
