@@ -1,5 +1,5 @@
 <!DOCTYPE kpartgui SYSTEM "kpartgui.dtd">
-<kpartgui name="unidown"  version="21">
+<kpartgui name="unidown"  version="22">
 <MenuBar>
   <!--<Menu name="move"><text>&amp;Move</text>
     <Action name="switch_action" />
@@ -7,6 +7,7 @@
 <Menu name="file"><text>&amp;File</text>
 <Action name="file_config"/>
 <Action name="reload"/>
+<Action name="reload-nodownload"/>
 </Menu>
 </MenuBar>
 </kpartgui>

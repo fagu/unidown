@@ -2,7 +2,7 @@ require 'resultsview.rb'
 require 'notificationsview.rb'
 
 class Unidown < KDE::XmlGuiWindow
-	slots 'systrayActivated(QSystemTrayIcon::ActivationReason)', :reload, :reloadTray
+	slots 'systrayActivated(QSystemTrayIcon::ActivationReason)', :reloaddown, :reloadnodown, :reloadTray
 	def initialize()
 		super()
 
@@ -28,7 +28,7 @@ class Unidown < KDE::XmlGuiWindow
 		@timer = Qt::Timer.new(self)
 		@timer.setSingleShot(true)
 		@timer.setInterval(1000*60*30)
-		connect(@timer, SIGNAL("timeout()"), self, SLOT(:reload))
+		connect(@timer, SIGNAL("timeout()"), self, SLOT(:reloaddown))
 		
 		show
 		reload
@@ -43,17 +43,26 @@ private
 	
 	def setupActions()
 		KDE::StandardAction.quit($kapp, SLOT(:closeAllWindows), actionCollection)
+		
 		KDE::StandardAction.print(@resultsview, SLOT(:print), actionCollection)
+		
 		action = KDE::Action.new(i18n("Konfiguration anzeigen"), self)
 		action.setShortcut(KDE::Shortcut.new(Qt::CTRL + Qt::Key_K))
 		actionCollection.addAction("file_config", action)
 		connect(action, SIGNAL('triggered(bool)'), @resultsview, SLOT(:showConfig))
+		
 		action = KDE::Action.new(i18n("Aktualisieren"), self)
 		action.setShortcut(KDE::Shortcut.new(Qt::Key_F5))
 		action.setIcon(Qt::Icon.fromTheme("view-refresh"))
 		actionCollection.addAction("reload", action)
 		@trayIcon.contextMenu.addAction(action)
-		connect(action, SIGNAL('triggered(bool)'), self, SLOT(:reload))
+		connect(action, SIGNAL('triggered(bool)'), self, SLOT(:reloaddown))
+		
+		action = KDE::Action.new(i18n("Aktualisieren (ohne Download)"), self)
+		action.setShortcut(KDE::Shortcut.new(Qt::Key_F5+Qt::SHIFT))
+		action.setIcon(Qt::Icon.fromTheme("view-refresh"))
+		actionCollection.addAction("reload-nodownload", action)
+		connect(action, SIGNAL('triggered(bool)'), self, SLOT(:reloadnodown))
 	end
 	
 	def setupTrayIcon
@@ -64,7 +73,13 @@ private
 		reloadTray
 	end
 	
-	def reload
+	def reloaddown
+		reload(true)
+	end
+	def reloadnodown
+		reload(false)
+	end
+	def reload(down=true)
 		@timer.stop
 		Notification.clear
 		Job.clear
@@ -73,7 +88,7 @@ private
 		$unikernel = UnidownKernel.new
 		Dir.chdir $unikernel.unidir do
 			$unikernel.init
-			$unikernel.download
+			$unikernel.download if down
 			$unikernel.findjobs
 			$unikernel.runjobs
 			$unikernel.finalize
