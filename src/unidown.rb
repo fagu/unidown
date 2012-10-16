@@ -97,7 +97,8 @@ private
 		@resultsview.reload
 		@notificationsview.reload
 		reloadTray
-		statusBar.showMessage("Zuletzt aktualisiert #{Time.new.strftime 'am %d.%m.%Y um %H:%M:%S'}")
+		statusBar.removeItem(0) if statusBar.hasItem(0)
+		statusBar.insertPermanentItem("Zuletzt aktualisiert #{Time.new.strftime 'am %d.%m.%Y um %H:%M:%S'}",0)
 		@timer.start
 	end
 	
