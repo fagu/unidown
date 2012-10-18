@@ -16,7 +16,7 @@ class MyFileDialog < KDE::Dialog
 		@ui.pattern.setText(Regexp.escape(file))
 		@ui.save.setText(loc.destdir+"/")
 		@ui.chapter_book.setText(loc.destdir)
-		@ui.istitle.checked = @ui.chapter.checked = loc.url.end_with?(".pdf")
+		@ui.istitle.checked = @ui.chapter.checked = file.end_with?(".pdf")
 		
 		setMainWidget(@mainwidget)
 		
